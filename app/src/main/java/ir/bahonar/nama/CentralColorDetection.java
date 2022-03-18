@@ -10,7 +10,7 @@ import android.widget.TextView;
 public class CentralColorDetection {
 
     @SuppressLint("ClickableViewAccessibility")
-    public CentralColorDetection(ImageView im, Bitmap bm, View v, TextView tv){
+    public CentralColorDetection(Bitmap bm){
 
         final double WidthScale = (double) bm.getWidth()/1000d;
         final double HeightScale = (double) bm.getHeight()/1000d;
@@ -37,24 +37,6 @@ public class CentralColorDetection {
         Log.e("bottomLeft",bottomLeft.toString());
         Log.e("bottomRight",bottomRight.toString());
 
-        im.setOnTouchListener((view, motionEvent) -> {
-            int x = (int) motionEvent.getX();
-            int y = (int) motionEvent.getY();
-            int scaledX = (int)(x*WidthScale);
-            int scaledY = (int)(y*HeightScale);
-            Log.e("pos", scaledX + "," + scaledY);
-
-            int pixelColor = bm.getPixel(scaledX,scaledY);
-
-            String cohex = Integer.toHexString(pixelColor);
-            Log.e("hex",cohex);
-            v.setBackgroundColor(pixelColor);
-            tv.setText("#"+cohex + "\n( " +scaledX+" , "+scaledY+" )\n( "+
-                    ((double)x/(double)10) + "% , " + ((double)y/(double)10) + "% )\n"+colorDetection(cohex) );
-
-
-            return false;
-        });
     }
 
     Pixel getLeft(COLORS[][] colors){
@@ -148,10 +130,6 @@ public class CentralColorDetection {
         long longGreen = Long.parseLong(green,16);
         long longRed = Long.parseLong(red,16);
 
-        Log.e("RED",longRed+"");
-        Log.e("GREEN",longGreen+"");
-        Log.e("Blue",longBlue+"");
-
         double max = Math.max(Math.max(longBlue,longGreen),longRed);
         double min = Math.min(Math.min(longBlue,longGreen),longRed);
 
@@ -169,6 +147,20 @@ public class CentralColorDetection {
 
     }
 
+    private boolean isGreen(int pixel){
+        Col c = new Col(pixel);
+        return (c.green > c.blue) && (c.green > c.red) && ((c.blue - c.red) < 30) && ((c.blue - c.red) > -30);
+    }
+
+    private boolean isRed(int pixel){
+        Col c = new Col(pixel);
+        return (c.red > c.blue) && (c.red > c.green) && ((c.blue - c.green) < 30) && ((c.blue - c.green) > -30);
+    }
+
+    private boolean isBlue(int pixel){
+        Col c = new Col(pixel);
+        return (c.blue > c.red) && (c.blue > c.green) && ((c.red - c.green) < 30) && ((c.red - c.green) > -30);
+    }
 
 }
 

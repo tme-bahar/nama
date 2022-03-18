@@ -13,6 +13,8 @@ import androidx.camera.core.Preview;
 import androidx.camera.lifecycle.ProcessCameraProvider;
 import androidx.camera.view.PreviewView;
 import androidx.cardview.widget.CardView;
+import androidx.constraintlayout.widget.ConstraintLayout;
+import androidx.constraintlayout.widget.ConstraintSet;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.lifecycle.LifecycleOwner;
@@ -31,6 +33,7 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.media.Image;
 import android.os.Bundle;
 import android.os.CountDownTimer;
@@ -68,6 +71,8 @@ public class MainActivity extends AppCompatActivity {
     boolean configured = false;
     String strTV = "";
     int start = 0;
+    private SIGN[] sign = {SIGN.ELSE,SIGN.ELSE,SIGN.ELSE};
+    private SIGN lastSign = SIGN.ELSE;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,10 +82,28 @@ public class MainActivity extends AppCompatActivity {
         if (getSupportActionBar() != null) {
             getSupportActionBar().hide();
         }
+        
+        View bxr = findViewById(R.id.bxr);
+        View bnr = findViewById(R.id.bnr);
+        View bxl = findViewById(R.id.bxl);
+        View bnl = findViewById(R.id.bnl);
+        View txr = findViewById(R.id.txr);
+        View tnr = findViewById(R.id.tnr);
+        View txl = findViewById(R.id.txl);
+        View tnl = findViewById(R.id.tnl);
+
+        
+
+        //int picture = R.drawable.test;
+        //Bitmap bm = BitmapFactory.decodeResource(getResources(),picture);
+        //Bitmap bit = getResizedBitmap(bm,120,180);
+        //ColorDetection cd = new ColorDetection(bit);
+        //CentralColorDetection ccd = new CentralColorDetection(bit);
+        //im.setImageBitmap(bit);
 
         cv = findViewById(R.id.cardView);
         TextView tv = findViewById(R.id.textView);
-
+        //tv.setText(cd.message);
         cameraProviderFuture = ProcessCameraProvider.getInstance(this);
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
                 != PackageManager.PERMISSION_GRANTED)
@@ -101,7 +124,7 @@ public class MainActivity extends AppCompatActivity {
         }, ContextCompat.getMainExecutor(this));
 
         cv.setOnClickListener(view->{
-            onClick();
+            capt();
         });
         im.setOnClickListener(v->{
             im.setImageBitmap(bm);
@@ -109,12 +132,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
         findViewById(R.id.button2).setOnClickListener(v->{
-            startActivity(new Intent(this,setting.class));
             finish();
+            startActivity(new Intent(this,setting.class));
         });
         findViewById(R.id.button4).setOnClickListener(v->{
-            startActivity(new Intent(this,Bluetooth.class));
             finish();
+            startActivity(new Intent(this,Bluetooth.class));
         });
 
     }
@@ -174,10 +197,6 @@ public class MainActivity extends AppCompatActivity {
         }.start();
     }
 
-    public void onClick() {
-        capt();
-
-    }
     void capt(){
         start = (int)Calendar.getInstance().getTimeInMillis();
 
@@ -211,22 +230,16 @@ public class MainActivity extends AppCompatActivity {
                     @SuppressLint("RestrictedApi")
                     @Override
                     public void onImageSaved(@NonNull ImageCapture.OutputFileResults outputFileResults) {
-                        // insert your code here.
-                        //Toast.makeText(getApplicationContext(), "done", Toast.LENGTH_SHORT).show();
-                        Log.e("onImageSaved","onImageSaved");
+
                         byte[] bitmapdata = fOut.toByteArray();
-                        Log.e("bitmapdata",""+bitmapdata.length);
-                        Log.e("fOut",""+fOut.size());
                         bm = BitmapFactory.decodeByteArray(bitmapdata, 0, bitmapdata.length);
-                        Log.e("fOut","afterr"+fOut.size());
-                        //try {
                         Bitmap bit = getResizedBitmap(bm,setting.width,setting.height);
-                        Log.e("fOut","commp"+fOut.size());
+                        Bitmap rBit = RotateBitmap(bit,90);
                         try{
                             if(setting.signDet)
-                                signDetection(activity,bit);
+                                signDetection(activity,rBit);
                             else
-                                wayDetection(activity,bit);
+                                wayDetection(activity,rBit);
                         }catch (Exception e){
                             activity.runOnUiThread(() -> {
                                 Toast.makeText(getApplicationContext(),e.toString(),Toast.LENGTH_LONG).show();
@@ -245,11 +258,13 @@ public class MainActivity extends AppCompatActivity {
         };
         cdt.start();
     }
+
     private void wayDetection(Activity activity,Bitmap bit){
         activity.runOnUiThread(() -> {
             int now = (int)Calendar.getInstance().getTimeInMillis();
             //Toast.makeText(getApplicationContext(), "cam delay : "+(now-start), Toast.LENGTH_SHORT).show();
             WayDetection wd = new WayDetection(bit);
+
 
 
             try{
@@ -267,10 +282,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void signDetection(Activity activity,Bitmap bit){
+
         activity.runOnUiThread(() -> {
             int now = (int)Calendar.getInstance().getTimeInMillis();
             //Toast.makeText(getApplicationContext(), "cam delay : "+(now-start), Toast.LENGTH_SHORT).show();
             SignDetection sd = new SignDetection(bit,false);
+            addSign(sd.sign);
+            if(AreSignsSame())
+                lastSign = sd.sign;
+
+
 
 
             try{
@@ -287,7 +308,9 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    void analyst(CameraSelector cameraSelector,Preview preview){
+
+
+    void analyst(CameraSelector cameraSelector,Preview preview,Activity activity){
         ImageAnalysis imageAnalysis =
                 new ImageAnalysis.Builder()
                         .setTargetResolution(new Size(1280, 720))
@@ -297,7 +320,14 @@ public class MainActivity extends AppCompatActivity {
             int rotationDegrees = imageProxy.getImageInfo().getRotationDegrees();
             @SuppressLint("UnsafeOptInUsageError")
             Image i = imageProxy.getImage();
-
+            ByteBuffer buffer = i.getPlanes()[0].getBuffer();
+            byte[] bytes = new byte[buffer.capacity()];
+            buffer.get(bytes);
+            Bitmap bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+            activity.runOnUiThread(() -> {
+                ImageView im = findViewById(R.id.imageView);
+                im.setImageBitmap(bitmapImage);
+                    });
             //im.setImageBitmap(getResizedBitmap(bitmapImage,50,50));
             //im = findViewById(R.id.imageView);
             //im.setImageBitmap(bitmapImage);
@@ -312,7 +342,36 @@ public class MainActivity extends AppCompatActivity {
 
         cameraProvider.bindToLifecycle(this, cameraSelector, imageAnalysis, preview);
     }
+
     public Bitmap getResizedBitmap(Bitmap image, int bitmapWidth, int bitmapHeight) {
         return Bitmap.createScaledBitmap(image, bitmapWidth, bitmapHeight, true);
+    }
+
+    public static Bitmap RotateBitmap(Bitmap source, float angle)
+    {
+        Matrix matrix = new Matrix();
+        matrix.setRotate(angle);
+        return Bitmap.createBitmap(source, 0, 0, source.getWidth(), source.getHeight(), matrix, true);
+    }
+
+    private boolean AreSignsSame(){
+        return sign[0] == sign[1] && sign[1] == sign[2];
+    }
+    private void addSign(SIGN sign){
+        this.sign[0] = this.sign[1];
+        this.sign[1] = this.sign[2];
+        this.sign[2] = sign;
+    }
+
+    private void setBias(int resource,int constraintSource,boolean isHorizontal,float bias){
+        ConstraintSet constraintSet = new ConstraintSet();
+        constraintSet.clone(this, constraintSource);
+//for example lets change the vertical bias of tvDownVoteIcon
+        if(isHorizontal)
+            constraintSet.setHorizontalBias(resource, bias);
+        else
+            constraintSet.setVerticalBias(resource, bias);
+//you can do any other modification and then apply
+        constraintSet.applyTo( (ConstraintLayout) findViewById(constraintSource));
     }
 }
