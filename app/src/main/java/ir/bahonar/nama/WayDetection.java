@@ -3,6 +3,7 @@ package ir.bahonar.nama;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.provider.CalendarContract;
+import android.util.Log;
 
 public class WayDetection {
 
@@ -10,14 +11,14 @@ public class WayDetection {
     public String stu = "str";
     public Way way = Way.STR;
     public WayDetection(Bitmap bm){
-
+        setBlackLimit(bm,0.78f);
         int top = findTop(bm);
         int left1 = findLeft(bm,(int)(bm.getHeight()*setting.bottomLineY));
         int right1 = findRight(bm,(int)(bm.getHeight()*setting.bottomLineY));
 
         int left2 = bm.getWidth()/2;
         int right2 = bm.getWidth()/2;
-        if(top > setting.maxTop * bm.getHeight()){
+        if(top < (setting.maxTop + 0.1)* bm.getHeight()){
             left2 = findLeft(bm,(int)(bm.getHeight()*setting.topLineY));
             right2 = findRight(bm,(int)(bm.getHeight()*setting.topLineY));
         }
@@ -27,6 +28,17 @@ public class WayDetection {
                 ,getRegion(bm,left1,false)
                 ,getRegion(bm,right1,false)
                 ,top);
+
+        colorLineX(bm,(int)(bm.getWidth()*setting.minLeftBottom),(Color.MAGENTA),0.4f,1);
+        colorLineX(bm,(int)(bm.getWidth()*setting.maxLeftBottom),(Color.WHITE),0.4f,1);
+        colorLineX(bm,(int)(bm.getWidth()*setting.maxRightBottom),(Color.MAGENTA),0.4f,1);
+        colorLineX(bm,(int)(bm.getWidth()*setting.minRightBottom),(Color.WHITE),0.4f,1);
+        colorLineX(bm,(int)(bm.getWidth()*setting.minLeftTop),(Color.CYAN),0.2f,0.8f);
+        colorLineX(bm,(int)(bm.getWidth()*setting.maxLeftTop),(Color.YELLOW),0.2f,0.8f);
+        colorLineX(bm,(int)(bm.getWidth()*setting.maxRightTop),(Color.CYAN),0.2f,0.8f);
+        colorLineX(bm,(int)(bm.getWidth()*setting.minRightTop),(Color.YELLOW),0.2f,0.8f);
+        colorLineY(bm,(int)(bm.getHeight()*setting.maxTop),(Color.RED),0,1);
+
 /*
         if(left2 < (bm.getWidth())*(setting.maxHalf-setting.maxRes)){
             stu = "Keep Right";
@@ -54,7 +66,7 @@ public class WayDetection {
             }
         }
   */
-        message = way.toString() + "\ntop:"+top +" \n bottom:("+left1+","+right1+") \n top:("+left2+","+right2+")";
+        //message = way.toString() + "\ntop:"+top +" \n bottom:("+left1+","+right1+") \n top:("+left2+","+right2+")";
 
     }
 
@@ -62,34 +74,48 @@ public class WayDetection {
         int topType = getType(topLeft,topRight);
         int bottomType = getType(bottomLeft,bottomRight);
         //
-        boolean top = mid > setting.maxTop * bm.getHeight() ;
-        if(topType == 2 && bottomType == 2 && top)
-            way = Way.CC;
-        else if(topType == 2 && bottomType == 2 && !top)
-            way = Way.CRL;
-        else if((topType == 1 || topType == 0 ) && (bottomType == 1 || bottomType == 0 ) && top)
-            way = Way.CL;
-        else if((topType == 5 || topType == 8 ) && (bottomType == 5 || bottomType == 8 ) && top)
-            way = Way.CR;
-        else if((topType == 1 || topType == 0 ) && (bottomType == 1 || bottomType == 0 ) && !top)
-            way = Way.TL;
-        else if((topType == 5 || topType == 8 ) && (bottomType == 5 || bottomType == 8 ) && !top)
-            way = Way.TR;
-        else if(topType == 7 && bottomType == 7 && top)
-            way = Way.KR;
-        else if(topType ==3 && bottomType == 3 && top)
-            way = Way.KL;
-        else
-            way = Way.STR;
-        message = stu + "\ntop:"+top +" \n bottom:("+bottomType+") \n top:("+topType+")";
+        boolean top = mid < setting.maxTop * bm.getHeight() ;
+        if(mid < setting.topLineY * bm.getHeight()) {
+            if (topType == 2 && bottomType == 2 && top)
+                way = Way.CC;
+            else if (topType == 2 && bottomType == 2 && !top)
+                way = Way.CRL;
+            else if ((topType == 1 || topType == 0) && (bottomType == 1 || bottomType == 0 || bottomType == 2) && !top)
+                way = Way.TL;
+            else if ((topType == 5 || topType == 8) && (bottomType == 5 || bottomType == 8 || bottomType == 2) && !top)
+                way = Way.TR;
+            else if ((topType == 7 || topType == 8) && ( bottomType == 7 ||bottomType == 8 ) && top)
+                way = Way.KR;
+            else if ((topType == 0 || topType == 3) && ( bottomType == 0 ||bottomType == 3 ) && top)
+                way = Way.KL;
+            else if ((topType == 1 || topType == 0) && (bottomType == 1 || bottomType == 0 || bottomType == 2) && top)
+                way = Way.CL;
+            else if ((topType == 5 || topType == 8) && (bottomType == 5 || bottomType == 8 || bottomType == 2) && top)
+                way = Way.CR;
+            else
+                way = Way.STR;
+        }else{
+            if (bottomType == 2)
+                way = Way.CRL;
+            else if ((bottomType == 1 || bottomType == 0) && !top)
+                way = Way.TL;
+            else if ((bottomType == 5 || bottomType == 8) && !top)
+                way = Way.TR;
+            else
+                way = Way.STR;
+        }
+        message = way.toString() + "\ntop:"+top +" \n bottom:("+bottomType+") \n top:("+topType+")";
     }
 
     private int getType(int left,int right){
+        //Log.e("left",left+"");
+        //Log.e("right",right+"");
+
         int k = left%5;
         int t = right%5;
-        int result = -1;
-        result = left*3;
-        result += (right*3)+1;
+        int result ;
+        result = k*3;
+        result += (t-2);
         return result;
     }
     private int getRegion(Bitmap bm,int i,boolean isTop){
@@ -120,7 +146,7 @@ public class WayDetection {
     }
     
     private int findTop(Bitmap bm){
-        int result = bm.getHeight()-1;
+        int result = (int)(bm.getHeight()*(setting.bottomLineY));
         while (result != 1)
             if(isBlack(bm.getPixel(bm.getWidth()/2,result)))
                 return result;
@@ -155,12 +181,64 @@ public class WayDetection {
     private boolean isBlack(int pixel){
         Col c = new Col(pixel);
         int res = Math.max(c.red,Math.max(c.blue,c.green)) - Math.min(c.red,Math.min(c.blue,c.green));
-        return (c.red < 170) && (c.green < 170) && (c.blue < 170) && res < 35;
+        return (c.red < setting.blackLimit*1.6) && (c.green < setting.blackLimit*1.6) && (c.blue < setting.blackLimit*1.6) && res < 35;
     }
 
     private void changeColor(Bitmap bm,int x, int y){
         bm.setPixel(x,y, Color.BLUE);
     }
+    private void changeToBlack(Bitmap bm,int x, int y){
+        bm.setPixel(x,y, Color.BLACK);
+    }
+    private void changeToWhite(Bitmap bm,int x, int y){
+        bm.setPixel(x,y, Color.WHITE);
+    }
 
     enum Way {KR,KL,TR,TL,CR,CL,CC,STR,CRL }
+
+
+    private void colorLineX(Bitmap bm,int x,int color,float top,float bottom){
+        for (int y = (int)(bm.getHeight()*top); y < (int)(bm.getHeight()*bottom);y++)
+            bm.setPixel(x,y,color);
+    }
+    private void colorLineY(Bitmap bm,int y,int color,float left,float right){
+        for (int x = (int)(bm.getWidth()*left); x < (int)(bm.getWidth()*right);x++)
+            bm.setPixel(x,y,color);
+    }
+
+    private void setBlackLimit(Bitmap bm,float height){
+        int[] averages = new int[bm.getWidth()];
+        for (int i = (int)(bm.getWidth()*0.3) ; i < (int)(bm.getWidth()*0.7) ;i++){
+            averages[i] = (int)getColorAverage(bm.getPixel(i,(int)(bm.getHeight()*height)));
+            //changeToWhite(bm,i,(int)(bm.getHeight()*height));
+        }
+        setting.blackLimit = (int)getAverage(new float[]{ getMax(averages),getMin(averages)});
+    }
+
+    private float getColorAverage(int color){
+        Col c = new Col(color);
+        return getAverage(new float[]{c.blue,c.green,c.red});
+    }
+
+    private float getAverage(float[] numbers){
+        float sum = 0;
+        for (float f:numbers)
+            sum += f;
+        return sum/numbers.length;
+    }
+    private int getMax(int[] numbers){
+        int max = Integer.MIN_VALUE;
+        for (int i:numbers)
+            if(i > max)
+                max = i;
+        return max;
+    }
+    private int getMin(int[] numbers){
+        int min = Integer.MAX_VALUE;
+        for (int i:numbers)
+            if(i < min)
+                min = i;
+        return min;
+    }
+
 }

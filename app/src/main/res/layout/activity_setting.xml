@@ -192,4 +192,29 @@
         app:layout_constraintStart_toStartOf="@+id/editTextNumberDecimal6"
         app:layout_constraintTop_toBottomOf="@+id/editTextNumberDecimal6" />
 
+    <EditText
+        android:id="@+id/editTextPhone"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:hint="Black Limit"
+        android:inputType="phone"
+        app:layout_constraintEnd_toEndOf="@+id/editTextNumberDecimal12"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/editTextNumberDecimal12" />
+
+    <EditText
+        android:id="@+id/editTextPhone2"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:ems="10"
+        android:hint="course time"
+        android:inputType="phone"
+        app:layout_constraintEnd_toEndOf="@+id/editTextNumberDecimal13"
+        app:layout_constraintStart_toStartOf="@+id/editTextNumberDecimal13"
+        app:layout_constraintTop_toBottomOf="@+id/editTextNumberDecimal13" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

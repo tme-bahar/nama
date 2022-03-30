@@ -1,5 +1,6 @@
 package ir.bahonar.nama;
 
+import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.util.Log;
@@ -19,7 +20,8 @@ public class Area {
     public int width = 0;
     public int base = -1;
     public String message = "";
-    public Area(List<Pixel> points,Bitmap bm,boolean complete){
+    @SuppressLint("SetTextI18n")
+    public Area(List<Pixel> points, Bitmap bm, boolean complete){
         this.points = points;
         message = sign.toString();
         if(!checkSize())
@@ -62,9 +64,20 @@ public class Area {
                     (int)((left.x)+((width*0.35))),(int)((left.x)+((width*0.45))),
                     ((int)((top.y)+(height*0.3))),((int)((top.y)+(height*0.7))))+"");
             */
-        Log.e("hw",hw+"f");
-        message = sign.toString()+"( hw:" + hw + " ,points: "+points.size() + " )";
-        if(((double)hw/(double) points.size()) > 3)
+
+
+//        bm.setPixel(x+1,y+1,Color.BLUE);
+//        bm.setPixel(x+1,y,Color.BLUE);
+//        bm.setPixel(x+1,y-1,Color.BLUE);
+//        bm.setPixel(x,y+1,Color.BLUE);
+//        bm.setPixel(x,y,Color.BLUE);
+//        bm.setPixel(x,y-1,Color.BLUE);
+//        bm.setPixel(x-1,y+1,Color.BLUE);
+        //bm.setPixel(x-1,y,Color.BLUE);
+        //bm.setPixel(x-1,y-1,Color.BLUE);
+        //MainActivity.tv.setBackgroundColor(bm.getPixel(100,100));
+        Log.e("","");
+        if(!isGreen(bm.getPixel(left.x+width/2,top.y +height/2)))
         {
 /*
             int leftBlackLines = getMoodBlacks(bm,1,
@@ -107,10 +120,10 @@ public class Area {
                 }
                 message = sign.toString() + "\nE3 (left : " + " ) ( l:"+leftOne+" , r:"+rightOne+")";
             }else{
-                int leftBlack = getBlackCount(bm,(int)((left.x)+(width*0.2)),(int)((left.x)+(width*0.3))
+                int leftBlack = getBlackCount(bm,(int)((left.x)+(width*0.3)),(int)((left.x)+(width*0.4))
                         ,(int)((top.y)+(height*0.35)),(int)((top.y)+(height*0.55)));
 
-                int rightBlack = getBlackCount(bm,(int)((right.x)-(width*0.3)),(int)((right.x)-(width*0.2))
+                int rightBlack = getBlackCount(bm,(int)((right.x)-(width*0.4)),(int)((right.x)-(width*0.3))
                         ,(int)((top.y)+(height*0.35)),(int)((top.y)+(height*0.55)));
 
                 int centerBlack = getBlackCount(bm,(int)((right.x)-(width*0.55)),(int)((right.x)-(width*0.45))
@@ -119,13 +132,16 @@ public class Area {
                 message = sign.toString() + "\nE3 (left : " +leftBlack + " , right : "+rightBlack+" , center :"+centerBlack
                         + " ) ( l:"+leftOne+" , r:"+rightOne+")";
                 if((rightBlack + leftBlack) < (centerBlack*1.2))
+                {
                     sign = SIGN.STRIGHT;
-                else if(rightOne == 1 && leftOne == 1)
+                }
+                else
+                    if(rightOne == 1 && leftOne == 1)
                 {
 
-                    if(isBlack(bm.getPixel(left.x+(width/2),(int)(bottom.y-(height*0.1)))))
-                        sign = SIGN.STRIGHT;
-                    else{
+//                    if(isBlack(bm.getPixel(left.x+(width/2),(int)(bottom.y-(height*0.1)))))
+//                        sign = SIGN.STRIGHT;
+//                    else{
                         leftBlack = getBlackCount(bm,(int)((left.x)+(width*0.3)),(int)((left.x)+(width*0.4))
                                 ,(int)((top.y)+(height*0.35)),(int)((top.y)+(height*0.55)));
 
@@ -133,7 +149,7 @@ public class Area {
                                 ,(int)((top.y)+(height*0.35)),(int)((top.y)+(height*0.55)));
 
                         sign = leftBlack > rightBlack ? SIGN.LEFT : SIGN.RIGHT;
-                    }
+                    //}
 
                 }
                 message = sign.toString() + "\nE1 (left : " +leftBlack + " , right : "+rightBlack+" , center :"+centerBlack
@@ -142,25 +158,12 @@ public class Area {
 
         }
         else{
-            sign = SIGN.RED;
-
-            message = sign.toString();
+            if(hw > 1500){
+                sign = SIGN.RED ;
+                message = sign.toString() + "hw";
+            }else
+                sign = SIGN.ELSE;
         }
-/*
-        Log.e("top x",top.x+"");
-        Log.e("top y",top.y+"");
-        Log.e("right x",right.x+"");
-        Log.e("right y",right.y+"");
-        Log.e("left x",left.x+"");
-        Log.e("left y",left.y+"");
-        Log.e("bottom y",bottom.y+"");
-        Log.e("bottom x",bottom.x+"");
-        Log.e("height",height+"");
-        Log.e("width",width+"");
-
-        Log.e("cube",height*width+"");
-        Log.e("all",points.size()+"");
-*/
     }
 
     private int getMoodBlacks(Bitmap bm,double step,int minX,int maxX,int minY,int maxY){
@@ -309,8 +312,16 @@ public class Area {
     private boolean isBlack(int pixel){
         Col c = new Col(pixel);
         int res = Math.max(c.red,Math.max(c.blue,c.green)) - Math.min(c.red,Math.min(c.blue,c.green));
-        return (c.red < 170) && (c.green < 170) && (c.blue < 170) && res < 35;
+        return (c.red < setting.blackLimit * 1.2) && (c.green < setting.blackLimit*1.2) && (c.blue < setting.blackLimit*1.2) && res < 35;
     }
+
+    private boolean isYellow(int pixel){
+        return pixel == Color.parseColor("#ffff00");
+    }
+    private boolean isGreen(int pixel){
+        return pixel == Color.parseColor("#00ff00");
+    }
+
     private boolean areBlack(int ... pixels){
         boolean result = true;
         for (int p:pixels)
@@ -341,4 +352,10 @@ public class Area {
          */
     }
 
+    private boolean isRed(int pixel){
+        Col c = new Col(pixel);
+        return (c.red > 150) &&
+                (c.blue-c.green < 50) && (c.blue-c.green > -50)
+                && c.blue < 130 && c.green < 130;
+    }
 }

@@ -23,9 +23,11 @@ public class SignDetection {
         }
     }
     public Bitmap replace(){
+        if(true)
+            return bm;
         if(area != null && area.points!=null && area.points.size() != 0)
             for (Pixel p : area.points)
-                bm.setPixel(p.x,p.y, Color.parseColor("#000000"));
+                bm.setPixel(p.x,p.y, Color.parseColor("#ffff00"));
         return bm;
     }
     private Area findBiggest(List<Area> areas){
@@ -52,13 +54,13 @@ public class SignDetection {
     }
     private List<Area> getAreas(Bitmap bm ,boolean complete){
         List<Area> result = new ArrayList<>();
-        for(int i = 0; i < bm.getWidth();i++)
+        for(int i = (int)(bm.getWidth()*0.6); i < bm.getWidth();i++)
             for(int j = 0; j < bm.getHeight(); j++)
                 if(isRed(bm.getPixel(i,j)))
                 {
                     List<Pixel> area = new ArrayList<>();
                     area.add(new Pixel(COLORS.RED,i,j));
-                    bm.setPixel(i,j,Color.parseColor("#00ff00"));
+                    bm.setPixel(i,j,Color.parseColor("#ffff00"));
                     getArea(bm,area,i,j);
                     result.add(new Area(area,bm,complete));
                 }
@@ -141,9 +143,10 @@ public class SignDetection {
     }
     private boolean isRed(int pixel){
         Col c = new Col(pixel);
-        return (c.red > 150) &&
-                (c.blue-c.green < 50) && (c.blue-c.green > -50)
-                && c.blue < 130 && c.green < 130;
+        int min = Math.min(c.blue,c.green);
+        int max = Math.max(c.blue,c.green);
+        int res = max - min;
+        return (res < 40) && (max < c.red) && ((c.red - max) > 80);
     }
 }
 enum SIGN {STRIGHT,RIGHT,LEFT,TOP,RED,ELSE,B1,B2,A1,A2}
